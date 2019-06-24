@@ -43,19 +43,37 @@
     <body>
         <main>
             <v-app dark>
-                <v-snackbar v-model="snackbar" :timeout="3000" top>
-                    <span v-html="내용을 5자 이상 작성하십시오."></span>
+                <v-snackbar v-model="snackbar" :timeout="5000" top>
+                    <span v-text="'내용을 3자 이상 작성하십시오.'"></span>
                 </v-snackbar>
 
-                <v-layout align-center row>
-                    <v-layout align-center>
-                        <div :class="'logo-white'"></div>
-                        <div :class="'ml-3 divider'"></div>
-                        <h1 class="ml-3" v-text="'EDCAN GuestBook'"></h1>
-                    </v-layout>
-                    <v-layout class="mt-4">
-                        <v-text-field v-model="comment" label="내용 입력" color="#00B8D4" :rules="[rules.required]" hint="Enter를 입력하면 저장됩니다." @keypress.enter="addBook" autofocus required></v-text-field>
-                    </v-layout>
+                <v-layout align-start justify-center row>
+                    <v-flex xs9 class="mt-5">
+                        <v-layout align-center>
+                            <div :class="'logo-white'"></div>
+                            <div :class="'ml-3 divider'"></div>
+                            <h1 class="ml-3" v-text="'EDCAN GuestBook'"></h1>
+                        </v-layout>
+                        <v-timeline align-top dense class="mt-5">
+                            <v-timeline-item fill-dot class="white--text mb-5" color="#00B8D4" key="0">
+                                <v-card class="elevation-2" dark>
+                                    <v-card-title>
+                                        <v-text-field v-model="comment" label="내용 입력" color="#00B8D4" hint="Enter 키를 누르면 저장됩니다." @keypress.enter="addBook" autofocus required></v-text-field>
+                                    </v-card-title>
+                                </v-card>
+                            </v-timeline-item>
+
+                            <v-slide-x-transition group>
+                                <v-timeline-item v-for="row in docs" :key="row.id" class="mb-3" color="indigo" small>
+                                    <v-card class="elevation-2" dark>
+                                        <v-card-title>
+                                            <div class="subheading font-weight-bold" v-html="row.comment"></div>
+                                        </v-card-title>
+                                    </v-card>
+                                </v-timeline-item>
+                            </v-slide-x-transition>
+                        </v-timeline>
+                    </v-flex>
                 </v-layout>
             </v-app>
         </main>
@@ -85,25 +103,23 @@
                 storageBucket: "circle-edcan.appspot.com"
             });
             firebase.auth().signInAnonymously();
-            const dbRef = firebase.firestore().collection("kiosk");
+            const dbRef = firebase.firestore().collection("kiosk"),
+                hashStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
             var v = new Vue({
                 el: "v-app",
                 data: () => ({
                     snackbar: false,
                     comment: "",
                     docs: [],
-                    rules: {
-                        required: value => !!value || "필수 사항입니다."
-                    }
+                    key: ""
                 }),
 
                 created: function() {
                     dbRef
-                        .orderBy("tsp", "asc")
+                        .orderBy("tsp", "desc")
                         .get()
                         .then(querySnapshot => {
                             querySnapshot.forEach(doc => {
-                                console.log(doc.id + "=>" + doc.data());
                                 v.docs.push(doc.data());
                             });
                         })
@@ -114,12 +130,12 @@
 
                 methods: {
                     fetchBook() {
+                        v.docs = [];
                         dbRef
-                            .orderBy("tsp", "asc")
+                            .orderBy("tsp", "desc")
                             .get()
                             .then(querySnapshot => {
                                 querySnapshot.forEach(doc => {
-                                    console.log(doc.id + "=>" + doc.data());
                                     v.docs.push(doc.data());
                                 });
                             })
@@ -128,22 +144,33 @@
                             });
                     },
                     addBook() {
-                        if (this.comment.length <= 3) {
+                        this.rand();
+                        if (this.comment.length < 3) {
+                            this.snackbar = true;
                             return false;
                         }
                         dbRef
                             .add({
                                 tsp: firebase.firestore.FieldValue.serverTimestamp(),
+                                id: v.key,
                                 comment: v.comment
                             })
                             .then(function(docRef) {
                                 console.log("AddedBook: ", docRef.id);
+                                // v.fetchBook();
+                                v.docs.unshift({ id: docRef.id, comment: v.comment });
+                                v.rand();
                                 v.comment = "";
-                                v.fetchBook();
                             })
                             .catch(function(error) {
                                 console.log("ERROR: ", error);
                             });
+                    },
+                    rand() {
+                        this.key = "";
+                        for (let i = 0; i < 6; i++) {
+                            this.key += hashStr.charAt(Math.floor(Math.random() * hashStr.length));
+                        }
                     }
                 }
             });
