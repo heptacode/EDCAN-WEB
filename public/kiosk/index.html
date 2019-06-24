@@ -43,6 +43,10 @@
     <body>
         <main>
             <v-app dark>
+                <v-snackbar v-model="snackbar" :timeout="3000" top>
+                    <span v-html="내용을 5자 이상 작성하십시오."></span>
+                </v-snackbar>
+
                 <v-layout align-center row>
                     <v-layout align-center>
                         <div :class="'logo-white'"></div>
@@ -85,6 +89,7 @@
             var v = new Vue({
                 el: "v-app",
                 data: () => ({
+                    snackbar: false,
                     comment: "",
                     docs: [],
                     rules: {
@@ -123,6 +128,9 @@
                             });
                     },
                     addBook() {
+                        if (this.comment.length <= 3) {
+                            return false;
+                        }
                         dbRef
                             .add({
                                 tsp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -130,6 +138,7 @@
                             })
                             .then(function(docRef) {
                                 console.log("AddedBook: ", docRef.id);
+                                v.comment = "";
                                 v.fetchBook();
                             })
                             .catch(function(error) {
