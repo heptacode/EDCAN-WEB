@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>EDCAN Kiosk</title>
+        <link rel="icon" href="../favicon.png" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-nanumsquare/1.0.0/nanumsquare.css?ver=4.9.8" />
+        <link rel="stylesheet" href="https://unpkg.com/vuetify/dist/vuetify.min.css" />
+        <style>
+            html {
+                height: 100%;
+                overflow: hidden;
+            }
+            body {
+                margin: 0;
+                background: #fafafa;
+                word-break: keep-all;
+            }
+            .body,
+            .application,
+            .display-4,
+            .display-3,
+            .display-2,
+            .display-1,
+            .headline,
+            .title {
+                font-family: "Nanum Square", sans-serif;
+            }
+            .logo-white {
+                padding: 20px;
+                height: 30px;
+                background: url("logo-white.png") center no-repeat;
+                background-size: contain;
+            }
+            .divider {
+                height: 30px;
+                border-right: 2px solid #fff;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <v-app dark>
+                <v-layout align-center row>
+                    <v-layout align-center>
+                        <div :class="'logo-white'"></div>
+                        <div :class="'ml-3 divider'"></div>
+                        <h1 class="ml-3" v-text="'EDCAN GuestBook'"></h1>
+                    </v-layout>
+                    <v-layout class="mt-4">
+                        <v-text-field v-model="comment" label="내용 입력" color="#00B8D4" :rules="[rules.required]" hint="Enter를 입력하면 저장됩니다." @keypress.enter="addBook" autofocus required></v-text-field>
+                    </v-layout>
+                </v-layout>
+            </v-app>
+        </main>
+        <noscript>
+            <style>
+                main {
+                    display: none;
+                }
+            </style>
+            <div style="display:flex;align-items:center;justify-content:center;position:fixed;width:100%;height:100%;top:0;left:0;background:#1E1E1E;color:white;font-family:'Nanum Square',sans-serif;z-index:1000;">
+                <h1>
+                    JavaScript를 활성화하여 주십시오.
+                </h1>
+            </div>
+        </noscript>
+        <script src="https://unpkg.com/vue/dist/vue.js"></script>
+        <script src="https://unpkg.com/vuetify/dist/vuetify.min.js"></script>
+        <script src="/__/firebase/5.9.1/firebase-app.js"></script>
+        <script src="/__/firebase/5.9.1/firebase-auth.js"></script>
+        <script src="/__/firebase/5.9.1/firebase-firestore.js"></script>
+        <script>
+            firebase.initializeApp({
+                apiKey: "AIzaSyD1Y94aWwTb39Z3bzmI0e6lwmoxEB25fgI",
+                authDomain: "circle-edcan.firebaseapp.com",
+                databaseURL: "https://circle-edcan.firebaseio.com",
+                projectId: "circle-edcan",
+                storageBucket: "circle-edcan.appspot.com"
+            });
+            firebase.auth().signInAnonymously();
+            const dbRef = firebase.firestore().collection("kiosk");
+            var v = new Vue({
+                el: "v-app",
+                data: () => ({
+                    comment: "",
+                    docs: [],
+                    rules: {
+                        required: value => !!value || "필수 사항입니다."
+                    }
+                }),
+
+                created: function() {
+                    dbRef
+                        .orderBy("tsp", "asc")
+                        .get()
+                        .then(querySnapshot => {
+                            querySnapshot.forEach(doc => {
+                                console.log(doc.id + "=>" + doc.data());
+                                v.docs.push(doc.data());
+                            });
+                        })
+                        .catch(function(error) {
+                            console.log("ERROR : " + error);
+                        });
+                },
+
+                methods: {
+                    fetchBook() {
+                        dbRef
+                            .orderBy("tsp", "asc")
+                            .get()
+                            .then(querySnapshot => {
+                                querySnapshot.forEach(doc => {
+                                    console.log(doc.id + "=>" + doc.data());
+                                    v.docs.push(doc.data());
+                                });
+                            })
+                            .catch(function(error) {
+                                console.log("ERROR : " + error);
+                            });
+                    },
+                    addBook() {
+                        dbRef
+                            .add({
+                                tsp: firebase.firestore.FieldValue.serverTimestamp(),
+                                comment: v.comment
+                            })
+                            .then(function(docRef) {
+                                console.log("AddedBook: ", docRef.id);
+                                v.fetchBook();
+                            })
+                            .catch(function(error) {
+                                console.log("ERROR: ", error);
+                            });
+                    }
+                }
+            });
+        </script>
+    </body>
+</html>
